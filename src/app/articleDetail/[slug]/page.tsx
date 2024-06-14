@@ -16,7 +16,7 @@ const ArticleDetail = () =>
     const [ newComment, setNewComment ] = useState( '' );
     const [ loading, setLoading ] = useState( false );
     const [ profiles, setProfiles ] = useState<any>( {} );
-    console.log( profiles );
+    console.log( profiles?._id );
 
     const fetchArticle = async () =>
     {
@@ -387,16 +387,18 @@ const ArticleDetail = () =>
                             <p className="text-gray-700">{ comment?.body }</p>
 
 
-                            <Popconfirm
-                                title="xóa comment"
-                                description="Bạn có muốn xóa comment"
-                                okText="có"
-                                onConfirm={ () => handleConfirmDelete( comment?._id ) }
-                                cancelText="không"
-                                className="absolute right-0 bottom-0 text-red-500 hover:text-red-700"
-                            >
-                                <Button><FaTrash /></Button>
-                            </Popconfirm>
+                            { comment?.author?.userId === profiles?._id && ( // Kiểm tra ID người dùng trước khi hiển thị nút xóa
+                                <Popconfirm
+                                    title="xóa comment"
+                                    description="Bạn có muốn xóa comment"
+                                    okText="có"
+                                    onConfirm={ () => handleConfirmDelete( comment?._id ) }
+                                    cancelText="không"
+                                    className="absolute right-0 bottom-0 text-red-500 hover:text-red-700"
+                                >
+                                    <Button><FaTrash /></Button>
+                                </Popconfirm>
+                            ) }
                         </div>
                     ) ) }
                 </div>

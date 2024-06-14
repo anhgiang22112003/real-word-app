@@ -4,14 +4,30 @@ import { FaHeart } from 'react-icons/fa';
 
 const BodyArticle = () =>
 {
+    const [ token, setToken ] = useState<string | null>( null );
     const [ titles, setTitles ] = useState<any[]>( [] );
     const [ tanglist, settanglist ] = useState<any[]>( [] );
-    const [ profile, setProfile ] = useState<any>( [] );
+    const [ profile, setProfile ] = useState<any>( null );
+    const profiles = profile?.following || [];
+    const [ favorites, setFavorites ] = useState<string[]>( [] );
+    console.log( profile );
 
+    useEffect( () =>
+    {
+        if ( typeof window !== "undefined" )
+        {
+            const tokenFromStorage = localStorage.getItem( "token" );
+            setToken( tokenFromStorage );
+        }
+    }, [] );
 
-    const proflies = profile?.following
-    console.log( proflies );
-    const token = localStorage.getItem( "token" )
+    useEffect( () =>
+    {
+        if ( profile?.favorites )
+        {
+            setFavorites( profile?.favorites );
+        }
+    }, [ profile ] );
 
     const fetchTitles = async () =>
     {
@@ -34,23 +50,22 @@ const BodyArticle = () =>
     {
         try
         {
-            const tanglist = await fetch( "http://localhost:8080/api/articles/gettags" )
+            const tanglist = await fetch( "http://localhost:8080/api/articles/gettags" );
             if ( tanglist.ok )
             {
-                const data = await tanglist.json()
-                settanglist( data.tags )
-                console.log( data );
-
+                const data = await tanglist.json();
+                settanglist( data.tags );
             } else
             {
-                const data = await tanglist.json()
-                toast( data.message )
+                const data = await tanglist.json();
+                toast( data.message );
             }
         } catch ( error: any )
         {
-            toast( error )
+            toast( error );
         }
-    }
+    };
+
     const handleTagClick = async ( tag: string, author: string = "" ) =>
     {
         try
@@ -59,7 +74,6 @@ const BodyArticle = () =>
             if ( response.ok )
             {
                 const data = await response.json();
-
                 setTitles( data?.articles );
             } else
             {
@@ -71,9 +85,10 @@ const BodyArticle = () =>
             toast( error.message );
         }
     };
+
     const handleFavorits = async ( slug: any ) =>
     {
-        const token = localStorage.getItem( "token" )
+        const token = localStorage.getItem( "token" );
         try
         {
             const favorists = await fetch( `http://localhost:8080/api/articles/${ slug }/favorite`, {
@@ -82,29 +97,35 @@ const BodyArticle = () =>
                     Authorization: "Bearer " + token,
                     'Content-Type': 'application/json',
                 },
-            } )
+            } );
 
             if ( favorists.ok )
             {
-                toast( "yêu thích bài viết thành công " );
+                toast( "Yêu thích bài viết thành công" );
                 const data = await favorists.json();
-                fetchTitles()
+                console.log( data?.slugs?._id );
 
-            }
-            else
+                // Cập nhật trạng thái profile và titles
+                setProfile( ( prevProfile: any ) => ( {
+                    ...prevProfile,
+                    favorites: [ ...prevProfile.favorites, data?.slugs?._id ]
+                } ) );
+
+
+                fetchTitles();
+
+            } else
             {
                 const data = await favorists.json();
-
-                toast( data.message )
+                toast( data.message );
             }
 
         } catch ( error: any )
         {
-            toast( error.message )
-
-
+            toast( error.message );
         }
-    }
+    };
+
     const fetchProfile = async () =>
     {
         try
@@ -128,13 +149,11 @@ const BodyArticle = () =>
             if ( response.ok )
             {
                 const data = await response.json();
-                console.log( data );
-                setProfile( data.profiles ); // Adjusted to access nested profile object
-
+                setProfile( data.profiles );
             } else
             {
                 const data = await response.json();
-                toast( data.error )
+                toast( data.error );
             }
 
         } catch ( error: any )
@@ -142,9 +161,10 @@ const BodyArticle = () =>
             toast( error );
         }
     };
+
     const handlefeed = async () =>
     {
-        const token = localStorage.getItem( "token" )
+        const token = localStorage.getItem( "token" );
         try
         {
             const feed = await fetch( "http://localhost:8080/api/articles/feed", {
@@ -153,39 +173,42 @@ const BodyArticle = () =>
                     Authorization: "Bearer " + token,
                     'Content-Type': 'application/json',
                 }
-            } )
+            } );
             if ( feed.ok )
             {
-                const data = await feed.json()
-                toast( "lấy thành công" )
-                setTitles( data?.article )
+                const data = await feed.json();
+                toast( "Lấy thành công" );
+                setTitles( data?.article );
             } else
             {
-                const data = await feed.json()
-
-                toast( data.message )
+                const data = await feed.json();
+                toast( data.message );
             }
         } catch ( error: any )
         {
-            toast( error.message )
+            toast( error.message );
         }
+    };
 
-    }
     useEffect( () =>
     {
-        fetTanglist()
+        fetTanglist();
         fetchTitles();
-        fetchProfile()
+        fetchProfile();
 
     }, [] );
+
+    const isArticleFavorited = ( articleId: string ) =>
+    {
+        return favorites.includes( articleId );
+    };
 
     return (
         <div className="container mx-auto p-6 flex flex-col md:flex-row gap-6">
             <div className="bg-white p-8 rounded-lg shadow-lg flex-1">
                 <h2 className="text-2xl font-bold mb-6">Danh sách bài viết</h2>
-                { titles ? (
+                { titles?.length > 0 ? (
                     <div className="space-y-4">
-
                         { titles?.map( ( article, index ) => (
                             <div key={ index } className="bg-gray-50 p-6 rounded-lg shadow hover:shadow-lg transition duration-300 relative">
                                 <h3 className="text-xl font-bold mb-2">{ article.title }</h3>
@@ -197,19 +220,18 @@ const BodyArticle = () =>
                                 <a href={ `/articleDetail/${ article.slug }` } className="text-blue-500 hover:underline">Đọc thêm</a>
                                 <div className="absolute bottom-4 right-4">
                                     <button
-                                        onClick={ () => handleFavorits( article?.slug ) }
-                                        className={ `flex items-center ${ article?.favorited && token ? 'text-red-500 hover:text-red-700' : 'text-gray-500 hover:text-gray-700' }` }
+                                        onClick={ () => handleFavorits( article.slug ) }
+                                        className={ `flex items-center ${ isArticleFavorited( article._id ) && token ? 'text-red-500 hover:text-red-700' : 'text-gray-500 hover:text-gray-700' }` }
                                     >
-                                        <FaHeart className="mr-2" /> { article?.favoritesCount }
+                                        <FaHeart className="mr-2" /> { article.favoritesCount }
                                     </button>
                                 </div>
                             </div>
                         ) ) }
                     </div>
                 ) : (
-                    <p>không có dữ liệu </p>
+                    <p>Không có dữ liệu</p>
                 ) }
-
             </div>
             <div className="bg-white p-8 rounded-lg shadow-lg w-full md:w-1/4">
                 <h2 className="text-2xl font-bold mb-6">Chuyên mục</h2>
@@ -224,10 +246,9 @@ const BodyArticle = () =>
                         </li>
                     ) ) }
                 </ul>
-                <h2 className="text-2xl font-bold mb-6">Các tác giả đã yêu thích </h2>
-
+                <h2 className="text-2xl font-bold mb-6">Các tác giả đã yêu thích</h2>
                 <ul className="space-y-2">
-                    { proflies?.map( ( author: any, index: any ) => (
+                    { profiles?.map( ( author: any, index: any ) => (
                         <li
                             key={ index }
                             className="text-gray-700 cursor-pointer hover:underline"
@@ -237,20 +258,14 @@ const BodyArticle = () =>
                         </li>
                     ) ) }
                 </ul>
-
-
-                <p className="text-2xl mt-3 font-bold mb-6">các mục khác: </p>
+                <p className="text-2xl mt-3 font-bold mb-6">Các mục khác:</p>
                 <ul className="space-y-2">
-
                     <li
-
                         className="text-gray-700 cursor-pointer hover:underline"
                         onClick={ () => handlefeed() }
                     >
                         Các bài viết của người dùng đã yêu thích
-
                     </li>
-
                 </ul>
             </div>
         </div>
